@@ -5,7 +5,5 @@ $(document).ready(function() {
     $(document).keypress(function (e) {
         v.handleKey(e.keyCode);
     });
-
-    v.render(0, 0);
 });
 
