@@ -3,14 +3,9 @@ body {
     background: #2C3331;
 }
 
-.text p {
+.text pre {
     font-family: Consolas, monaco, monospace;
     font-weight: bold;
     font-size: 20px;
     color: white;
-}
-
-.text p #highlight {
-    background: white;
-    color: #2C3331;
 }

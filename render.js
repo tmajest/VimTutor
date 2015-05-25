@@ -36,5 +36,5 @@ Render.prototype.resetTimer = function() {
     this.timer = window.setInterval(function() { 
         renderCursor(); 
     }, 
-    800);
+    750);
 };
