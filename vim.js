@@ -1,14 +1,4 @@
 
-$(document).ready(function() {
-    var v = new Vim();
-
-    $(document).keypress(function (e) {
-        v.handleKey(e.keyCode);
-    });
-
-    v.render(0, 0);
-});
-
 function Vim() {
     this.x = 0;
     this.y = 0;
@@ -21,6 +11,7 @@ Vim.prototype.render = function(newX, newY) {
     this.x = newX;
     this.y = newY;
     this.cursor = true;
+    this.keyHandler = new KeyHandler();
 
     window.clearInterval(this.timer);
     var renderCursor = Vim.prototype.renderCursor;
@@ -63,18 +54,20 @@ Vim.prototype.renderCursor = function() {
 };
 
 Vim.prototype.handleKey = function(code) {
-    if (code == 104) {
-        // h - move to the left
-        var newX = Math.max(0, this.x - 1);
-        if (newX != this.x) {
-            this.render(newX, this.y);
-        }
+    var result = this.keyHandler.handle(
+        this.x, 
+        this.y, 
+        code, 
+        this.text.length);
+
+    if (!result) {
+        return;
     }
-    else if (code == 108) {
-        // l - move to the right
-        var newX = Math.min(this.x + 1, this.text.length - 1);
-        if (newX != this.x) {
-            this.render(newX, this.y);
-        }
+
+    var newX = result[0];
+    var newY = result[1];
+
+    if (newX != this.x || newY != this.y) {
+        this.render(newX, newY);
     }
 };
