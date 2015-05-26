@@ -2,6 +2,7 @@
 function Render() {
     this.highlightCursor = true; 
     this.resetTimer();
+    this.highlight = new Highlight();
 }
 
 Render.prototype.renderPage = function(html) {
@@ -37,4 +38,23 @@ Render.prototype.resetTimer = function() {
         renderCursor(); 
     }, 
     750);
+};
+
+Render.prototype.getHtml = function(text, x, y) {
+    var html = []
+    var rows = text.length; 
+    
+    for (var i = 0; i < rows; i++) {
+        var htmlLine = ["<pre id=\"text\">"]
+        var line = text[i];
+        if (i == y) {
+            htmlLine.push(this.highlight.highlight(line, x, x, "highlight"));
+        }
+        else {
+            htmlLine.push(line);
+        }
+        html.push(htmlLine.join(""));
+    }
+
+    return html.join("<br>");
 };

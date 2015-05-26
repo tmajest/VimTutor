@@ -4,6 +4,7 @@ body {
 }
 
 .text pre {
+    margin: 0px;
     font-family: Consolas, monaco, monospace;
     font-weight: bold;
     font-size: 20px;
