@@ -5,7 +5,8 @@ function KeyHandler() {
         104: this.h,
         106: this.j,
         107: this.k,
-        108: this.l
+        108: this.l,
+        _parent: this
     };
 }
 
@@ -19,7 +20,7 @@ KeyHandler.prototype.handle = function(x, y, code, text) {
 
 KeyHandler.prototype.h = function(x, y, code, text) {
     var newX = Math.max(0, x - 1); 
-    this.lastX = newX;
+    this._parent.lastX = newX;
     return [newX, y]; 
 };
 
@@ -29,11 +30,11 @@ KeyHandler.prototype.j = function(x, y, code, text) {
 
     var len = text[newY].length;
     var newX;
-    if (len < this.lastX) {
+    if (len < this._parent.lastX) {
         newX = Math.max(0, len - 1);
     }
     else {
-        newX = this.lastX;
+        newX = this._parent.lastX;
     }
 
     return [newX, newY];
@@ -43,11 +44,11 @@ KeyHandler.prototype.k = function(x, y, code, text) {
     var newY = Math.max(0, y - 1);
     var len = text[newY].length;
     var newX;
-    if (len < this.lastX) {
+    if (len < this._parent.lastX) {
         newX = Math.max(0, len - 1);
     }
     else {
-        newX = this.lastX;
+        newX = this._parent.lastX;
     }
 
     return [newX, newY];
@@ -63,6 +64,6 @@ KeyHandler.prototype.l = function(x, y, code, text) {
         newX = Math.min(x + 1, len - 1);
     }
 
-    this.lastX = newX;
+    this._parent.lastX = newX;
     return [newX, y];
 };
