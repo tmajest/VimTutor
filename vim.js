@@ -31,7 +31,7 @@ Vim.prototype.handleKey = function(code) {
     if (newX != this.x || newY != this.y) {
         this.x = newX;
         this.y = newY;
-        var html = this.getHTML();
+        var html = this.render.getHtml(this.text, this.x, this.y);
         this.render.renderPage(html);
     }
 };

@@ -3,8 +3,12 @@ body {
     background: #2C3331;
 }
 
+.text {
+    margin: 20px 0px 0px 5px;
+}
+
 .text pre {
-    margin: 0px;
+    margin-top: 1px;
     font-family: Consolas, monaco, monospace;
     font-weight: bold;
     font-size: 20px;
