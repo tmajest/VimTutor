@@ -30,7 +30,7 @@ KeyHandler.prototype.j = function(x, y, code, text) {
 
     var len = text[newY].length;
     var newX;
-    if (len < this._parent.lastX) {
+    if (len <= this._parent.lastX) {
         newX = Math.max(0, len - 1);
     }
     else {
@@ -44,7 +44,7 @@ KeyHandler.prototype.k = function(x, y, code, text) {
     var newY = Math.max(0, y - 1);
     var len = text[newY].length;
     var newX;
-    if (len < this._parent.lastX) {
+    if (len <= this._parent.lastX) {
         newX = Math.max(0, len - 1);
     }
     else {
