@@ -43,18 +43,31 @@ Render.prototype.resetTimer = function() {
 Render.prototype.getHtml = function(text, x, y) {
     var html = []
     var rows = text.length; 
+    var trimmedText = rtrimText(text);
     
     for (var i = 0; i < rows; i++) {
         var htmlLine = ["<pre id=\"text\">"]
-        var line = text[i];
+        var line = trimmedText[i];
         if (i == y) {
             htmlLine.push(this.highlight.highlight(line, x, x, "highlight"));
         }
         else {
             htmlLine.push(line);
         }
-        html.push(htmlLine.join(""));
+        
+        var joined = htmlLine.join("");
+        var trimmed = rtrim(joined);
+        html.push(trimmed);
     }
 
     return html.join("<br>");
 };
+
+function rtrimText(text) {
+    var newText = []
+    for (var i = 0; i < text.length; i++) {
+        var line = text[i];
+        newText.push(rtrim(line));
+    }
+    return newText;
+}

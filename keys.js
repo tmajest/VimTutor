@@ -59,7 +59,7 @@ function j(x, y, text) {
     var rows = text.length;
     var newY = Math.min(y + 1, rows - 1);
 
-    var len = text[newY].length;
+    var len = text[newY].length - 1;
     var newX;
     if (len <= this._parent.lastX) {
         newX = Math.max(0, len - 1);
@@ -87,7 +87,7 @@ function j(x, y, text) {
  */
 function k(x, y, text) {
     var newY = Math.max(0, y - 1);
-    var len = text[newY].length;
+    var len = text[newY].length - 1;
     var newX;
     if (len <= this._parent.lastX) {
         newX = Math.max(0, len - 1);
@@ -104,7 +104,7 @@ function k(x, y, text) {
  * If the cursor is already at the end of the line, do nothing.
  */
 function l(x, y, text) {
-    var len = text[y].length;
+    var len = text[y].length - 1;
     var newX;
     if (len == 0) {
         newX = 0;
@@ -130,7 +130,7 @@ function zero(x, y, text) {
  * The $ key; move the cursor to the end of the line.
  */
 function dollarSign(x, y, text) {
-    var newX = Math.max(0, text[y].length - 1);
+    var newX = Math.max(0, text[y].length - 2);
     this._parent.lastX = newX;
     return [newX, y];
 }
@@ -155,17 +155,17 @@ function w(x, y, text) {
 
     var restOfLinesFunc = function(i, j, line) {
         // If the line is empty, go to the beginning of that line
-        if (line.length == 0)
+        if (line.length == 1)
             return [0, j];
         
         // If there is a word on that line, go to the beginning of it
-        var result = match("\\S", line);
+        var result = matchAt("\\S", line, 0);
         return result ? [result.index, j] : false;
     };
 
     var defaultFunc = function(i, j, line) {
         // Otherwise, go to the end of the last line
-        var newX = Math.max(0, line.length - 1);
+        var newX = Math.max(0, line.length - 2);
         return [newX, j];
     };
 
@@ -187,7 +187,7 @@ function e(x, y, text) {
     };
 
     var defaultFunc = function(i, j, line) {
-        var newX = Math.max(0, line.length - 1);
+        var newX = Math.max(0, line.length - 2);
         return [newX, j];
     };
 
@@ -228,7 +228,7 @@ function multilineAction(
         return result;
 
     // Try remaining lines
-    for (var j = ySelectorFunc(y); j >= 0 && j < text.length; j = ySelectorFunc(y)) {
+    for (var j = ySelectorFunc(y); j >= 0 && j < text.length; j = ySelectorFunc(j)) {
         line = text[j];
         result = restOfLinesFunc(0, j, line);
         if (result)
@@ -244,17 +244,16 @@ function multilineAction(
  * given line, or -1 if there are no more words on the line.
  */
 function findNextWord(x, line) {
-    if (line.length == 0)
-        return -1;
-    else if (x == line.length - 1)
+    if (line.length == 0 || x >= line.length - 2)
         return -1;
 
     var c = line[x];
+    var pos = x + 1;
     var pattern;
 
     // If on whitespace, look for next non-whitespace character
     if (isWhiteSpace(c)) {
-        var match = matchAfter("\\S", line, x);
+        var match = matchAt("\\S", line, pos);
         return match ? match.index : -1;
     }
 
@@ -267,13 +266,13 @@ function findNextWord(x, line) {
         pattern = "[a-zA-Z0-9_]";
     }
 
-    var patternMatch = matchAfter(pattern, line, x);
+    var patternMatch = matchAt(pattern, line, pos);
     var patternPos = patternMatch 
         ? patternMatch.index
         : Number.MAX_SAFE_INTEGER;
     
     // Also look for the next non-whitespace character after some whitespace
-    var wordAfterWhitespaceMatch = matchAfter("\\S*\\s+(\\S)", line, x);
+    var wordAfterWhitespaceMatch = matchAt("\\S*\\s+(\\S)", line, pos);
     var wordAfterWhitespacePos = wordAfterWhitespaceMatch
         ? wordAfterWhitespaceMatch.index
         : Number.MAX_SAFE_INTEGER;
@@ -286,19 +285,60 @@ function findNextWord(x, line) {
     return Math.min(patternPos, wordAfterWhitespacePos);
 }
 
+function findEndOfNextWord(x, line) {
+    var pos = x + 1;
+    if (line.length == 0 || pos > line.length - 2)
+        return -1;
 
-/**
- * Find first regex match in the given string
- */
-function match(pattern, str) {
-    return matchAfter(pattern, str, -1);
+    var c = line[pos];
+    if (isWhiteSpace(c)) {
+        var match = matchAt("\\S", line, pos);
+        if (!match)
+            return -1;
+
+        pos = match.index;
+    }
+
+    return findEndOfWord(pos, line);
 }
 
 /**
- * Find first regex match in the given string that is after the
+ * Given that x is on a non-whitespace character, find the end of the word
+ * that the character is on.
+ */
+function findEndOfWord(x, line) {
+    if (x == line.length - 2)
+        return x;
+
+    var c = line[x];
+    var pattern;
+
+    pattern = isAlphaNumeric(c) ? "[^a-zA-Z0-9_\\s]" : "\\s";
+
+    var patternMatch = matchAt(pattern, line, x);
+    var patternPos = patternMatch
+        ? patternMatch.index
+        : Number.MAX_SAFE_INTEGER;
+
+    var whitespaceMatch = matchAt("\\s", line, x);
+    var whitespacePos = whitespaceMatch
+        ? whitespaceMatch.index
+        : Number.MAX_SAFE_INTEGER;
+
+    if (patternPos == Number.MAX_SAFE_INTEGER && 
+        whitespacePos == Number.MAX_SAFE_INTEGER)
+        return -1;
+
+    return Math.min(patternPos, whitespacePos) == patternPos
+        ? patternPos - 1
+        : whitespacePos- 1;
+}
+
+/**
+ * Find first regex match in the given string that is at or after the
  * starting position.
  */
-function matchAfter(pattern, str, start) {
+function matchAt(pattern, str, start) {
     var match;
     var regex = new RegExp(pattern, "g");
     while (match = regex.exec(str)) {
@@ -306,7 +346,7 @@ function matchAfter(pattern, str, start) {
             ? str.indexOf(match[1], match.index + match[0].length - 1)
             : match.index;
 
-        if (pos > start) {
+        if (pos >= start) {
             return { index: pos };
         }
     }
