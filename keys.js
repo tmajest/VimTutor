@@ -7,6 +7,8 @@
 function KeyHandler() {
     this.lastX = 0;
     this.handlers = {
+        36:  this.dollarSign,
+        48:  this.zero,
         104: this.h,
         106: this.j,
         107: this.k,
@@ -109,6 +111,24 @@ KeyHandler.prototype.l = function(x, y, code, text) {
         newX = Math.min(x + 1, len - 1);
     }
 
+    this._parent.lastX = newX;
+    return [newX, y];
+};
+
+/**
+ * The 0 key; move the cursor to the beginning of the line.
+ */
+ KeyHandler.prototype.zero = function(x, y, code, text) {
+    this._parent.lastX = 0;    
+    return [0, y];
+};
+
+
+/**
+ * The $ key; move the cursor to the end of the line.
+ */
+KeyHandler.prototype.dollarSign = function(x, y, code, text) {
+    var newX = Math.max(0, text[y].length - 1);
     this._parent.lastX = newX;
     return [newX, y];
 };
