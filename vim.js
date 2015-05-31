@@ -4,7 +4,6 @@ function Vim() {
     this.y = 0;
     this.text = [
         "Welcome to VimTutor.",
-        "Second line",
         "Press the h, j, k, and l keys to start moving around."];
 
     this.keyHandler = new KeyHandler();
