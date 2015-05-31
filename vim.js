@@ -3,8 +3,16 @@ function Vim() {
     this.x = 0;
     this.y = 0;
     this.text = [
-        "Welcome to VimTutor.",
-        "Press the h, j, k, and l keys to start moving around."];
+        "Lorem ipsum dolor sit amet, ut mei errem constituto,",
+        "illud errem vidisse nam te. Nam quis scripserit at,",
+        "pro posse mediocrem no, per illud dolorem ad. Ne mei", 
+        "diceret appetere. Ex ius malorum nominavi.",
+        "",
+        "Reque scriptorem no cum, in per impetus vocibus convenire.",
+        "Sale splendide eam et, in atqui voluptua conclusionemque sea,", 
+        "eu usu quando platonem. Quodsi diceret eam eu, vel ea exerci",
+        "appellantur. Labore eligendi partiendo cum no, nobis delicata",
+        "qui ut, his dictas virtute ex."];
 
     this.keyHandler = new KeyHandler();
 

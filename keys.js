@@ -13,6 +13,7 @@ function KeyHandler() {
         106: j,
         107: k,
         108: l,
+        101: e,
         119: w,
         _parent: this
     };
@@ -25,7 +26,7 @@ function KeyHandler() {
  */
 KeyHandler.prototype.handle = function(x, y, code, text) {
     if (code in this.handlers) {
-        return this.handlers[code](x, y, code, text);
+        return this.handlers[code](x, y, text);
     }
 
     return false;
@@ -35,7 +36,7 @@ KeyHandler.prototype.handle = function(x, y, code, text) {
  * The h key; move the cursor one character to the left.
  * If the cursor's x position is already at 0, don't move the cursor.
  */
-function h(x, y, code, text) {
+function h(x, y, text) {
     var newX = Math.max(0, x - 1); 
     this._parent.lastX = newX;
     return [newX, y]; 
@@ -54,7 +55,7 @@ function h(x, y, code, text) {
  * Otherwise, the line below is not long enough so move the cursor down and 
  * to the end of the line.
  */
-function j(x, y, code, text) {
+function j(x, y, text) {
     var rows = text.length;
     var newY = Math.min(y + 1, rows - 1);
 
@@ -84,7 +85,7 @@ function j(x, y, code, text) {
  * Otherwise, the line above is not long enough so move the cursor up and 
  * to the end of the line.
  */
-function k(x, y, code, text) {
+function k(x, y, text) {
     var newY = Math.max(0, y - 1);
     var len = text[newY].length;
     var newX;
@@ -102,7 +103,7 @@ function k(x, y, code, text) {
  * The l key; move the cursor one character to the right.
  * If the cursor is already at the end of the line, do nothing.
  */
-function l(x, y, code, text) {
+function l(x, y, text) {
     var len = text[y].length;
     var newX;
     if (len == 0) {
@@ -119,7 +120,7 @@ function l(x, y, code, text) {
 /**
  * The 0 key; move the cursor to the beginning of the line.
  */
-function zero(x, y, code, text) {
+function zero(x, y, text) {
     this._parent.lastX = 0;    
     return [0, y];
 }
@@ -128,7 +129,7 @@ function zero(x, y, code, text) {
 /**
  * The $ key; move the cursor to the end of the line.
  */
-function dollarSign(x, y, code, text) {
+function dollarSign(x, y, text) {
     var newX = Math.max(0, text[y].length - 1);
     this._parent.lastX = newX;
     return [newX, y];
@@ -144,87 +145,153 @@ function dollarSign(x, y, code, text) {
  * If there are no more words on the current line, move to the next line
  * that is empty or contains a word.
  */
-function w(x, y, code, text) {
-    // Try current line 
-    var newX = x;
-    var newY = y;
+function w(x, y, text) {
+
+    var currentLineFunc = function(i, j, line) {
+        // Try to find next word on current line
+        var newX = findNextWord(i, line);
+        return newX >= 0 ? [newX, j] : false;
+    };
+
+    var restOfLinesFunc = function(i, j, line) {
+        // If the line is empty, go to the beginning of that line
+        if (line.length == 0)
+            return [0, j];
+        
+        // If there is a word on that line, go to the beginning of it
+        var result = match("\\S", line);
+        return result ? [result.index, j] : false;
+    };
+
+    var defaultFunc = function(i, j, line) {
+        // Otherwise, go to the end of the last line
+        var newX = Math.max(0, line.length - 1);
+        return [newX, j];
+    };
+
+    var ySelectorFunc = function(oldY) {
+        return oldY + 1;
+    };
+
+    var result = multilineAction(x, y, text, currentLineFunc,
+        restOfLinesFunc, defaultFunc, ySelectorFunc);
+
+    this._parent.lastX = result[0];
+    return [result[0], result[1]];
+}
+
+function e(x, y, text) {
+    var findEndOfWordFunc = function(i, j, line) {
+        var newX = findEndOfNextWord(i, line);
+        return newX >= 0 ? [newX, j] : false;
+    };
+
+    var defaultFunc = function(i, j, line) {
+        var newX = Math.max(0, line.length - 1);
+        return [newX, j];
+    };
+
+    var ySelectorFunc = function(oldY) {
+        return oldY + 1;
+    };
+
+    var result = multilineAction(x, y, text, findEndOfWordFunc,
+        findEndOfWordFunc, defaultFunc, ySelectorFunc);
+
+    this._parent.lastX = result[0];
+    return [result[0], result[1]];
+}
+
+/**
+ * Helper function for the commands that can move the cursor across lines 
+ * if they do not find their next position on the current line. Examples 
+ * include the w, b, and e keys.
+ *
+ * First apply the action to the line that the cursor is on.  If there
+ * is no suitable position for the cursor on the current line, get the
+ * next line number and apply the restOfLines action to the remaining lines.
+ * If there is still no suitable match, apply the default function.
+ */
+function multilineAction(
+    x,
+    y,
+    text,
+    currentLineFunc,
+    restOfLinesFunc,
+    defaultFunc,
+    ySelectorFunc) {
+
+    // Try current line
     var line = text[y];
-    var res = findNextWordOnLine(newX, newY, line);
-    if (res) {
-        this._parent.lastX = res[0];
-        return res;
-    }
-    
+    var result = currentLineFunc(x, y, line);
+    if (result)
+        return result;
+
     // Try remaining lines
-    for (newY = y + 1; newY < text.length; newY++) {
-        line = text[newY];
-
-        // Empty lines work
-        if (line.length == 0) {
-            this._parent.lastX = 0;
-            return [0, newY];
-        }
-
-        // Find first non-whitespace character
-        var match = matchAfter("\\S", line, 0);
-        if (match) {
-            this._parent.lastX = match.index;
-            return [match.index, newY];
-        }
+    for (var j = ySelectorFunc(y); j >= 0 && j < text.length; j = ySelectorFunc(y)) {
+        line = text[j];
+        result = restOfLinesFunc(0, j, line);
+        if (result)
+            return result;
     }
 
-    // Go to last character of last line
-    newX = Math.max(0, line.length - 1);
-    this._parent.lastX = newX;
-    return [newX, text.length - 1];
+    // Default action
+    return defaultFunc(0, y, line);
 }
 
 /**
  * Helper function to find the position of the next word on the 
- * given line, or false if there are no more words on the line.
+ * given line, or -1 if there are no more words on the line.
  */
-function findNextWordOnLine(x, y, line) {
-    var len = line.length;
+function findNextWord(x, line) {
+    if (line.length == 0)
+        return -1;
+    else if (x == line.length - 1)
+        return -1;
+
     var c = line[x];
-    var pos = x;
-
-    // Go to end of current word
-    if (!isWhiteSpace(c)) {
-        pos = endOfWord(x, line);
-    }
-
-    // Find next non-whitespace character
-    var match = matchAfter("\\S", line, pos + 1);
-    if (match) {
-        return [match.index, y]; 
-    }
-    
-    return false;
-}
-
-/**
- * Given the current position of the cursor, move to the end of the
- * current word.
- */
-function endOfWord(x, line) {
     var pattern;
 
-    var c = line[x];
+    // If on whitespace, look for next non-whitespace character
+    if (isWhiteSpace(c)) {
+        var match = matchAfter("\\S", line, x);
+        return match ? match.index : -1;
+    }
+
+    // If the character is alphanumeric, look for the next symbol character
     if (isAlphaNumeric(c)) {
-        // Find next non-alphanumeric character
-        pattern = "[^a-zA-Z0-9]";
+        pattern = "[^a-zA-Z0-9_\\s]";
     }
+    // If the character is symbolic, look for the next alphanumeric character
     else if (isSymbolic(c)) {
-        // Find next whitespace or alphanumeric character
-        pattern = "[a-zA-Z0-9\\s]";
+        pattern = "[a-zA-Z0-9_]";
     }
+
+    var patternMatch = matchAfter(pattern, line, x);
+    var patternPos = patternMatch 
+        ? patternMatch.index
+        : Number.MAX_SAFE_INTEGER;
     
-    var match = matchAfter(pattern, line, x + 1);
-    if (match) {
-        return match.index - 1;
-    }
-    
-    return line.length - 1;
+    // Also look for the next non-whitespace character after some whitespace
+    var wordAfterWhitespaceMatch = matchAfter("\\S*\\s+(\\S)", line, x);
+    var wordAfterWhitespacePos = wordAfterWhitespaceMatch
+        ? wordAfterWhitespaceMatch.index
+        : Number.MAX_SAFE_INTEGER;
+
+    if (patternPos == Number.MAX_SAFE_INTEGER && 
+        wordAfterWhitespacePos == Number.MAX_SAFE_INTEGER)
+        return -1;
+
+    // Find the nearest of all the matches
+    return Math.min(patternPos, wordAfterWhitespacePos);
+}
+
+
+/**
+ * Find first regex match in the given string
+ */
+function match(pattern, str) {
+    return matchAfter(pattern, str, -1);
 }
 
 /**
@@ -233,10 +300,13 @@ function endOfWord(x, line) {
  */
 function matchAfter(pattern, str, start) {
     var match;
-    var regex = new RegExp(pattern, "gi");
+    var regex = new RegExp(pattern, "g");
     while (match = regex.exec(str)) {
-        var pos = match.index;
-        if (pos >= start) {
+        var pos = match.length > 1
+            ? str.indexOf(match[1], match.index + match[0].length - 1)
+            : match.index;
+
+        if (pos > start) {
             return { index: pos };
         }
     }
