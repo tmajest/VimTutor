@@ -25,3 +25,10 @@ function isSymbolic(c) {
 function isWhiteSpace(c) {
     return /\s/.test(c);
 }
+
+/**
+ * Trim all whitespace from the right end of the string.
+ */
+function rtrim(str) {
+    return str.replace(/\s+$/, "");
+}
