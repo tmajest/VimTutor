@@ -180,6 +180,17 @@ function w(x, y, text) {
     return [result[0], result[1]];
 }
 
+/**
+ * Go to end of the word the cursor is on.  If the cursor is already on
+ * the end of the word, go to the end of the next word.
+ *
+ * A word consists of a sequence of letters, digits, and underscores,
+ * or a sequence of other non-blank characters separated by whitespace
+ * (spaces, tabs, or <EOL>). See :h word for more details.
+ * 
+ * If there are no more words on the current line, move to the next line
+ * that contains a word and move to the end of it.
+ */
 function e(x, y, text) {
     var findEndOfWordFunc = function(i, j, line) {
         var newX = findEndOfNextWord(i, line);
@@ -285,6 +296,12 @@ function findNextWord(x, line) {
     return Math.min(patternPos, wordAfterWhitespacePos);
 }
 
+/**
+ * Helper function for e key.  Finds the end of the word that the cursor
+ * is on.  If the cursor is already on the end of a word, return the
+ * position of the end of the next word.  If there are no more words
+ * on the current line, return -1;
+ */
 function findEndOfNextWord(x, line) {
     var pos = x + 1;
     if (line.length == 0 || pos > line.length - 2)
@@ -335,8 +352,8 @@ function findEndOfWord(x, line) {
 }
 
 /**
- * Find first regex match in the given string that is at or after the
- * starting position.
+ * Find first regex match in the given string that is on or after the
+ * starting position of the string.
  */
 function matchAt(pattern, str, start) {
     var match;
