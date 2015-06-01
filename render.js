@@ -67,7 +67,8 @@ function rtrimText(text) {
     var newText = []
     for (var i = 0; i < text.length; i++) {
         var line = text[i];
-        newText.push(rtrim(line));
+        var len = line.length;
+        newText.push(line.substring(0, len - 1));
     }
     return newText;
 }
