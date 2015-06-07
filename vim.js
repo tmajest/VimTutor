@@ -32,13 +32,17 @@ Vim.prototype.handleKey = function(code) {
         return;
     }
 
-    var newX = result[0];
-    var newY = result[1];
+    var newX = result.x;
+    var newY = result.y;
 
     if (newX != this.x || newY != this.y) {
         this.x = newX;
         this.y = newY;
         var html = this.render.getHtml(this.text, this.x, this.y);
         this.render.renderPage(html);
+    }
+    if (result.mode != this.mode) {
+        this.mode = result.mode;
+        this.render.renderCommandWindow(result.mode);
     }
 };

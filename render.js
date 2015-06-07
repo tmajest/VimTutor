@@ -3,6 +3,8 @@ function Render() {
     this.highlightCursor = true; 
     this.resetTimer();
     this.highlight = new Highlight();
+    this.NORMAL = 0;
+    this.INSERT = 1;
 }
 
 Render.prototype.renderPage = function(html) {
@@ -68,6 +70,13 @@ Render.prototype.getHtmlLine = function(text, x, y, i) {
     htmlLine.push("</pre>");
     return htmlLine.join("");
 };
+
+Render.prototype.renderCommandWindow = function(mode) {
+    $(".commandWindow").empty();
+    if (mode == this.INSERT) {
+        $(".commandWindow").html("<p>-- INSERT --</p>");
+    }
+}
 
 function rtrimText(text) {
     var newText = []

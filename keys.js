@@ -1,19 +1,21 @@
 /**
  * Class used to handle key motions and actions.
  * Handling functions take the current x and y position of the
- * cursor along with the text and key code.  They return the
+ * cursor along with the text and character pressed.  They return the
  * new positions of the cursor, or false if it is an invalid key.
  */
 function KeyHandler() {
     this.lastX = 0;
 
     this.NORMAL = 0;
-    this.INTERACTIVE = 1;
+    this.INSERT = 1;
     this.mode = this.NORMAL;
 
     this.normalHandlers = {
-        36:  dollarSign,
-        48:  zero,
+        36: dollarSign,
+        48: zero,
+        96: esc,
+        105: i,
         104: h,
         106: j,
         107: k,
@@ -32,9 +34,15 @@ function KeyHandler() {
 KeyHandler.prototype.handle = function(x, y, code, text) {
     if (this.mode == this.NORMAL) {
         if (code in this.normalHandlers) {
-            return this.normalHandlers[code](x, y, text);
+            return this.normalHandlers[code](x, y, text, this.mode);
         }
         return false;
+    }
+    else if (code == 96) {
+        return this.normalHandlers[code](x, y, text, this.mode);
+    }
+    else {
+        return addText(x, y, code, text, this.mode);
     }
 };
 
@@ -42,17 +50,18 @@ KeyHandler.prototype.handle = function(x, y, code, text) {
  * The h key; move the cursor one character to the left.
  * If the cursor's x position is already at 0, don't move the cursor.
  */
-function h(x, y, text) {
+function h(x, y, text, mode) {
     var newX = Math.max(0, x - 1); 
     this._parent.lastX = newX;
-    return [newX, y]; 
+    return new CommandResult(newX, y, null, mode);
 }
 
 /**
  * The j key; move the cursor down to the line below.
  *
  * The location of the cursor's x position on the line below depends
- * on the previous saved x position and the length of the line below.  * On successful movements left or right, the x position is saved.
+ * on the previous saved x position and the length of the line below.  
+ * On successful movements left or right, the x position is saved.
  * 
  * If the last saved x position is less than or equal to the length of the
  * line below, move the cursor down and to the last saved x position.
@@ -60,7 +69,7 @@ function h(x, y, text) {
  * Otherwise, the line below is not long enough so move the cursor down and 
  * to the end of the line.
  */
-function j(x, y, text) {
+function j(x, y, text, mode) {
     var rows = text.length;
     var newY = Math.min(y + 1, rows - 1);
 
@@ -73,7 +82,7 @@ function j(x, y, text) {
         newX = this._parent.lastX;
     }
 
-    return [newX, newY];
+    return new CommandResult(newX, newY, null, mode);
 }
 
 /**
@@ -90,7 +99,7 @@ function j(x, y, text) {
  * Otherwise, the line above is not long enough so move the cursor up and 
  * to the end of the line.
  */
-function k(x, y, text) {
+function k(x, y, text, mode) {
     var newY = Math.max(0, y - 1);
     var len = text[newY].length - 1;
     var newX;
@@ -101,14 +110,14 @@ function k(x, y, text) {
         newX = this._parent.lastX;
     }
 
-    return [newX, newY];
+    return new CommandResult(newX, newY, null, mode);
 }
 
 /**
  * The l key; move the cursor one character to the right.
  * If the cursor is already at the end of the line, do nothing.
  */
-function l(x, y, text) {
+function l(x, y, text, mode) {
     var len = text[y].length - 1;
     var newX;
     if (len == 0) {
@@ -119,25 +128,43 @@ function l(x, y, text) {
     }
 
     this._parent.lastX = newX;
-    return [newX, y];
+    return new CommandResult(newX, y, null, mode);
 }
 
 /**
  * The 0 key; move the cursor to the beginning of the line.
  */
-function zero(x, y, text) {
+function zero(x, y, text, mode) {
     this._parent.lastX = 0;    
-    return [0, y];
+    return new CommandResult(0, y, null, mode);
 }
 
+/**
+ * Go into insert mode.
+ */
+function i(x, y, text, mode) {
+    this._parent.mode = this._parent.INSERT;
+    return new CommandResult(x, y, null, this._parent.mode);
+}
+
+function esc(x, y, text, mode) {
+    if (this._parent.mode == this._parent.NORMAL) {
+        return null;
+    }
+
+    var newX = Math.max(0, x - 1); 
+    this._parent.lastX = newX;
+    this._parent.mode = this._parent.NORMAL;
+    return new CommandResult(newX, y, null, this._parent.mode);
+}
 
 /**
  * The $ key; move the cursor to the end of the line.
  */
-function dollarSign(x, y, text) {
+function dollarSign(x, y, text, mode) {
     var newX = Math.max(0, text[y].length - 2);
     this._parent.lastX = newX;
-    return [newX, y];
+    return new CommandResult(newX, y, null, mode);
 }
 
 /**
@@ -150,35 +177,39 @@ function dollarSign(x, y, text) {
  * or a sequence of other non-blank characters separated by whitespace
  * (spaces, tabs, or <EOL>). See :h word for more details.
  */
-function w(x, y, text) {
+function w(x, y, text, mode) {
 
     var currentLineFunc = function(i, j, line) {
         // Try to find next word on current line
         var newX = findNextWord(i, line);
-        return newX >= 0 ? [newX, j] : false;
+        return newX >= 0 
+            ? new CommandResult(newX, j, null, mode) 
+            : false;
     };
 
     var restOfLinesFunc = function(i, j, line) {
         // If the line is empty, go to the beginning of that line
         if (line.length == 1)
-            return [0, j];
+            return [0, j, false];
         
         // If there is a word on that line, go to the beginning of it
         var result = matchAt("\\S", line, 0);
-        return result ? [result.index, j] : false;
+        return result 
+            ? new CommandResult(result.index, j, null, mode) 
+            : false;
     };
 
     var defaultFunc = function(i, j, line) {
         // Otherwise, go to the end of the last line
         var newX = Math.max(0, line.length - 2);
-        return [newX, j];
+        return new CommandResult(newX, j, null, mode);
     };
 
     var result = multilineAction(x, y, text, currentLineFunc,
         restOfLinesFunc, defaultFunc, increment);
 
-    this._parent.lastX = result[0];
-    return [result[0], result[1]];
+    this._parent.lastX = result.x;
+    return new CommandResult(result.x, result.y, null, mode);
 }
 
 /**
@@ -192,22 +223,24 @@ function w(x, y, text) {
  * or a sequence of other non-blank characters separated by whitespace
  * (spaces, tabs, or <EOL>). See :h word for more details.
  */
-function e(x, y, text) {
+function e(x, y, text, mode) {
     var findEndOfWordFunc = function(i, j, line) {
         var newX = findEndOfNextWord(i, line);
-        return newX >= 0 ? [newX, j] : false;
+        return newX >= 0 
+            ? new CommandResult(newX, j, null, mode) 
+            : false;
     };
 
     var defaultFunc = function(i, j, line) {
         var newX = Math.max(0, line.length - 2);
-        return [newX, j];
+        return new CommandResult(newX, j, null, mode);
     };
 
     var result = multilineAction(x, y, text, findEndOfWordFunc,
         findEndOfWordFunc, defaultFunc, increment);
 
-    this._parent.lastX = result[0];
-    return [result[0], result[1]];
+    this._parent.lastX = result.x;
+    return new CommandResult(result.x, result.y, null, mode);
 }
 
 /**
@@ -222,7 +255,7 @@ function e(x, y, text) {
  * or a sequence of other non-blank characters separated by whitespace
  * (spaces, tabs, or <EOL>). See :h word for more details.
  */
-function b(x, y, text) {
+function b(x, y, text, mode) {
     // Not implemented
     return null;
 }
@@ -383,6 +416,22 @@ function matchAt(pattern, str, start) {
     }
 
     return false;
+}
+
+/**
+ * Used in insert mode. Add the character to the line at the position that
+ * the cursor is on. Move the character one position to the left.
+ */
+function addText(x, y, code, text, mode) {
+    var line = text[y];
+    var newLine = []
+
+    newLine.push(line.substring(0, x));
+    newLine.push(String.fromCharCode(code));
+    newLine.push(line.substring(x));
+
+    text[y] = newLine.join("");
+    return new CommandResult(x + 1, y, text, mode);
 }
 
 function increment(num) {

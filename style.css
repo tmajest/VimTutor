@@ -3,13 +3,25 @@ body {
     background: #2C3331;
 }
 
-.text {
+.container {
     margin: 20px 0px 0px 10px;
+    position: relative;
 }
 
 .text pre {
     margin-top: 0px;
     margin-bottom: 0px;
+    font-family: Consolas, monaco, monospace;
+    font-weight: bold;
+    font-size: 20px;
+    color: white;
+}
+
+.push {
+    height: 475px;
+}
+
+.commandWindow {
     font-family: Consolas, monaco, monospace;
     font-weight: bold;
     font-size: 20px;
