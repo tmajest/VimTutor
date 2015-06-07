@@ -46,21 +46,27 @@ Render.prototype.getHtml = function(text, x, y) {
     var trimmedText = rtrimText(text);
     
     for (var i = 0; i < rows; i++) {
-        var htmlLine = ["<pre id=\"text\">"]
-        var line = trimmedText[i];
-        if (i == y) {
-            htmlLine.push(this.highlight.highlight(line, x, x, "highlight"));
-        }
-        else {
-            htmlLine.push(line);
-        }
-        
-        var joined = htmlLine.join("");
-        var trimmed = rtrim(joined);
-        html.push(trimmed);
+        var htmlLine = this.getHtmlLine(trimmedText, x, y, i);
+        html.push(htmlLine);
     }
 
-    return html.join("<br>");
+    return html.join("");
+};
+
+Render.prototype.getHtmlLine = function(text, x, y, i) {
+    var htmlLine = ["<pre>"]
+    var line = text[i];
+    if (i == y) {
+        htmlLine.push(this.highlight.highlight(line, x, x, "highlight"));
+    }
+    else if (line.length == 0) {
+        htmlLine.push(" ");
+    }
+    else {
+        htmlLine.push(line);
+    }
+    htmlLine.push("</pre>");
+    return htmlLine.join("");
 };
 
 function rtrimText(text) {

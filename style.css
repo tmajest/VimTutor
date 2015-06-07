@@ -4,11 +4,12 @@ body {
 }
 
 .text {
-    margin: 20px 0px 0px 5px;
+    margin: 20px 0px 0px 10px;
 }
 
 .text pre {
-    margin-top: 1px;
+    margin-top: 0px;
+    margin-bottom: 0px;
     font-family: Consolas, monaco, monospace;
     font-weight: bold;
     font-size: 20px;

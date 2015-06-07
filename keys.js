@@ -6,7 +6,12 @@
  */
 function KeyHandler() {
     this.lastX = 0;
-    this.handlers = {
+
+    this.NORMAL = 0;
+    this.INTERACTIVE = 1;
+    this.mode = this.NORMAL;
+
+    this.normalHandlers = {
         36:  dollarSign,
         48:  zero,
         104: h,
@@ -25,11 +30,12 @@ function KeyHandler() {
  * for the cursor.
  */
 KeyHandler.prototype.handle = function(x, y, code, text) {
-    if (code in this.handlers) {
-        return this.handlers[code](x, y, text);
+    if (this.mode == this.NORMAL) {
+        if (code in this.normalHandlers) {
+            return this.normalHandlers[code](x, y, text);
+        }
+        return false;
     }
-
-    return false;
 };
 
 /**
@@ -46,8 +52,7 @@ function h(x, y, text) {
  * The j key; move the cursor down to the line below.
  *
  * The location of the cursor's x position on the line below depends
- * on the previous saved x position and the length of the line below.
- * On successful movements left or right, the x position is saved.
+ * on the previous saved x position and the length of the line below.  * On successful movements left or right, the x position is saved.
  * 
  * If the last saved x position is less than or equal to the length of the
  * line below, move the cursor down and to the last saved x position.
@@ -138,12 +143,12 @@ function dollarSign(x, y, text) {
 /**
  * The w key; move the cursor to the beginning of the next word.
  *
+ * If there are no more words on the current line, move to the next line
+ * that is empty or contains a word.
+
  * A word consists of a sequence of letters, digits, and underscores,
  * or a sequence of other non-blank characters separated by whitespace
  * (spaces, tabs, or <EOL>). See :h word for more details.
- * 
- * If there are no more words on the current line, move to the next line
- * that is empty or contains a word.
  */
 function w(x, y, text) {
 
@@ -169,12 +174,8 @@ function w(x, y, text) {
         return [newX, j];
     };
 
-    var ySelectorFunc = function(oldY) {
-        return oldY + 1;
-    };
-
     var result = multilineAction(x, y, text, currentLineFunc,
-        restOfLinesFunc, defaultFunc, ySelectorFunc);
+        restOfLinesFunc, defaultFunc, increment);
 
     this._parent.lastX = result[0];
     return [result[0], result[1]];
@@ -184,12 +185,12 @@ function w(x, y, text) {
  * Go to end of the word the cursor is on.  If the cursor is already on
  * the end of the word, go to the end of the next word.
  *
+ * If there are no more words on the current line, move to the next line
+ * that contains a word and move to the end of it.
+
  * A word consists of a sequence of letters, digits, and underscores,
  * or a sequence of other non-blank characters separated by whitespace
  * (spaces, tabs, or <EOL>). See :h word for more details.
- * 
- * If there are no more words on the current line, move to the next line
- * that contains a word and move to the end of it.
  */
 function e(x, y, text) {
     var findEndOfWordFunc = function(i, j, line) {
@@ -202,15 +203,28 @@ function e(x, y, text) {
         return [newX, j];
     };
 
-    var ySelectorFunc = function(oldY) {
-        return oldY + 1;
-    };
-
     var result = multilineAction(x, y, text, findEndOfWordFunc,
-        findEndOfWordFunc, defaultFunc, ySelectorFunc);
+        findEndOfWordFunc, defaultFunc, increment);
 
     this._parent.lastX = result[0];
     return [result[0], result[1]];
+}
+
+/**
+ * Go to the beginning of the word that the cursor is on.  If the cursor is
+ * already on the beginning of the word, go to the beginning of the previous
+ * word.
+ *
+ * If there are no more words on the current line, move to the previous line
+ * that is empty or contains a word and move to the beginning of it.
+
+ * A word consists of a sequence of letters, digits, and underscores,
+ * or a sequence of other non-blank characters separated by whitespace
+ * (spaces, tabs, or <EOL>). See :h word for more details.
+ */
+function b(x, y, text) {
+    // Not implemented
+    return null;
 }
 
 /**
@@ -369,4 +383,16 @@ function matchAt(pattern, str, start) {
     }
 
     return false;
+}
+
+function increment(num) {
+    return num + 1;
+}
+
+function decrement(num) {
+    return num - 1;
+}
+
+function complement(x, y) {
+    return y - x - 1;
 }
