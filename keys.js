@@ -14,7 +14,7 @@ function KeyHandler() {
     this.normalHandlers = {
         36: dollarSign,
         48: zero,
-        96: esc,
+        27: esc,
         105: i,
         104: h,
         106: j,
@@ -22,6 +22,7 @@ function KeyHandler() {
         108: l,
         101: e,
         119: w,
+        120: x,
         _parent: this
     };
 }
@@ -38,7 +39,7 @@ KeyHandler.prototype.handle = function(x, y, code, text) {
         }
         return false;
     }
-    else if (code == 96) {
+    else if (code == 27) {
         return this.normalHandlers[code](x, y, text, this.mode);
     }
     else {
@@ -140,6 +141,25 @@ function zero(x, y, text, mode) {
 }
 
 /**
+ * Delete the character under the cursor.
+ */
+function x(x, y, text, mode) {
+    var line = text[y];
+    var newLine = []
+
+    if (line.length == 1) {
+        return;
+    }
+
+    newLine.push(line.substring(0, x));
+    newLine.push(line.substring(x + 1));
+    text[y] = newLine.join("");
+
+    var newX = x == line.length - 2 ? x - 1 : x;
+    return new CommandResult(newX, y, text, mode);
+}
+
+/**
  * Go into insert mode.
  */
 function i(x, y, text, mode) {
@@ -147,6 +167,10 @@ function i(x, y, text, mode) {
     return new CommandResult(x, y, null, this._parent.mode);
 }
 
+/**
+ * Go into normal mode.  If the previous mode was insert mode,
+ * move the cursor to the left.
+ */
 function esc(x, y, text, mode) {
     if (this._parent.mode == this._parent.NORMAL) {
         return null;

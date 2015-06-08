@@ -17,13 +17,11 @@ body {
     color: white;
 }
 
-.push {
-    height: 475px;
-}
-
 .commandWindow {
     font-family: Consolas, monaco, monospace;
     font-weight: bold;
     font-size: 20px;
     color: white;
+    position: fixed;
+    bottom: 0;
 }

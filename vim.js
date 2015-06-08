@@ -34,10 +34,12 @@ Vim.prototype.handleKey = function(code) {
 
     var newX = result.x;
     var newY = result.y;
+    var newText = result.newText;
 
-    if (newX != this.x || newY != this.y) {
+    if (newX != this.x || newY != this.y || newText) {
         this.x = newX;
         this.y = newY;
+        this.text = newText ? newText : this.text;
         var html = this.render.getHtml(this.text, this.x, this.y);
         this.render.renderPage(html);
     }

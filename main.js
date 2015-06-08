@@ -5,5 +5,10 @@ $(document).ready(function() {
     $(document).keypress(function(e) {
         v.handleKey(e.keyCode);
     });
+
+    $(document).keyup(function(e) {
+        if (e.keyCode == 27)
+            v.handleKey(e.keyCode);
+    });
 });
 
