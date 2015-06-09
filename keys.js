@@ -156,6 +156,7 @@ function x(x, y, text, mode) {
     text[y] = newLine.join("");
 
     var newX = x == line.length - 2 ? x - 1 : x;
+    this._parent.lastX = newX;
     return new CommandResult(newX, y, text, mode);
 }
 
