@@ -6,5 +6,4 @@
 (function(modes) {
     modes.NORMAL = 0;
     modes.INSERT = 1;
-
 })(window.modes = window.modes || {});

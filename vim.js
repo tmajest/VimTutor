@@ -1,5 +1,5 @@
 
-(function(vim, keyHandler, render, commands, modes) {
+(function(vim, commands, render, modes) {
     var x = 0;
     var y = 0;
     var mode = modes.NORMAL;
@@ -22,7 +22,7 @@
     }
 
     vim.handleKey = function(code) {
-        var result = keyHandler.handle(
+        var result = commands.handle(
             x, 
             y, 
             code, 
@@ -51,4 +51,4 @@
             render.renderCommandWindow(commandText);
         }
     };
-})(window.vim = window.vim || {}, keyHandler, render, commands, modes)
+})(window.vim = window.vim || {}, commands, render, modes)
