@@ -1,14 +1,14 @@
 
 $(document).ready(function() {
-    var v = new Vim();
+    vim.init();
 
     $(document).keypress(function(e) {
-        v.handleKey(e.keyCode);
+        vim.handleKey(e.keyCode);
     });
 
     $(document).keyup(function(e) {
         if (e.keyCode == 27)
-            v.handleKey(e.keyCode);
+            vim.handleKey(e.keyCode);
     });
 });
 
