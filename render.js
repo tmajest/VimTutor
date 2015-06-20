@@ -4,9 +4,7 @@
     var timer;
 
     var initTimer = function() {
-        return window.setInterval(
-            function() { renderCursor(); },
-             650);
+        return window.setInterval(renderCursor, 650);
     }
 
     var resetTimer = function() {
