@@ -24,4 +24,24 @@
     strings.isWhiteSpace = function(c) {
         return /\s/.test(c);
     };
+
+    /**
+     * Regular expression for alpha numeric characters.
+     */
+    strings.alphaNumericRegex = /[a-zA-Z0-9_]/;
+
+    /**
+     * Regular expression for symbol characters.
+     */
+    strings.symbolicRegex = /[^a-zA-Z0-9_\s]/
+
+    /**
+     * Regular expression for whitespace characters.
+     */
+    strings.whiteSpaceRegex = /\s/;
+
+    /**
+     * Regular expression for non-whitespace characters.
+     */
+    strings.nonWhiteSpaceRegex = /\S/;
 })(window.strings = window.strings || {});

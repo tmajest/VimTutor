@@ -27,6 +27,17 @@
     };
 
     /**
+     * Returns the last line in the buffer.
+     */
+    buffer.last = function() {
+        var len = this.lines.length;
+        if (len == 0)
+            return null;
+
+        return this.lines[len - 1];
+    };
+
+    /**
      * Get a string array of all the lines in the buffer.
      */
     buffer.allLines = function() {

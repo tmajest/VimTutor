@@ -5,13 +5,13 @@
      */
     buffer.line = function(str, row) {
         this.row = row;
-        var chars = [];
+        this.chars = [];
         var that = this;
 
         var init = function() {
             var len = str.length;
             for (var i = 0; i < len; i++) {
-                chars.push(str.charAt(i));
+                that.chars.push(str.charAt(i));
             }
         };
 
@@ -19,33 +19,33 @@
          * Returns the length of the line; ignores the EOL character.
          */
         this.length = function() {
-            return Math.max(0, chars.length - 1);
+            return Math.max(0, that.chars.length - 1);
         };
 
         /**
          * Insert the character into the line at the given column.
          */
         this.insert = function(char, col) {
-            var len = chars.length;
+            var len = that.chars.length;
             for (var i = len - 1; i >= col; i--) {
-                chars[i + 1] = chars[i];
+                that.chars[i + 1] = that.chars[i];
             }
-            chars[col] = char;
+            that.chars[col] = char;
         };
 
         /**
          * Append a character to the end of the line.
          */
         this.append = function(char) {
-            chars.push(char); 
+            that.chars.push(char); 
         };
             
         /**
          * Remove the character at the given column and return it.
          */
         this.remove = function(col) {
-            var c = chars[col];
-            chars.remove(col);
+            var c = that.chars[col];
+            that.chars.remove(col);
             return c;
         };
 
@@ -76,7 +76,7 @@
          * Returns a string representation of the line.
          */
         that.toString = function() {
-            return chars.join("");
+            return that.chars.join("");
         }
 
         init();

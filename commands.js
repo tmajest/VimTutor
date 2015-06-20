@@ -4,7 +4,7 @@
  * cursor along with the text and character pressed.  They return the
  * new positions of the cursor, or false if it is an invalid key.
  */
-(function(commands, buffer, modes, strings) {
+(function(commands, buffer, modes, match, strings) {
     var lastCol = 0;
     var mode = modes.NORMAL;
 
@@ -144,39 +144,38 @@
      * or a sequence of other non-blank characters separated by whitespace
      * (spaces, tabs, or <EOL>). See :h word for more details.
      */
-    var w = function(x, y, text) {
-        var currentLineFunc = function(i, j, line) {
+    var w = function(row, col) {
+        var currentLineFunc = function(r, c) {
             // Try to find next word on current line
-            var newX = findNextWord(i, line);
-            return newX >= 0 
-                ? new commands.Result(newX, j, null, null, null) 
+            var line = buffer.lines[r];
+            var newCol = wHelper(line, c);
+            return newCol >= 0 
+                ? new commands.Result(r, newCol, newCol, mode) 
                 : null;
         };
 
-        var restOfLinesFunc = function(i, j, line) {
-            // If the line is empty, go to the beginning of that line
-            if (line.length == 1)
-                return new commands.Result(0, j, null, null, null);
+        var restOfLinesFunc = function(r, c) {
+            // If the next line is empty, go to the beginning of it
+            var line = buffer.lines[r];
+            if (line.length() == 0)
+                return new commands.Result(r, 0, 0, mode);
             
-            // If there is a word on that line, go to the beginning of it
-            var result = matchAt("\\S", line, 0);
-            return result 
-                ? new commands.Result(result.index, j, null, null, null) 
+            // Go to the beginning of the next word
+            var newCol = match.forward(line.chars, strings.nonWhiteSpaceRegex, 0);
+            return newCol >= 0 
+                ? new commands.Result(r, newCol, newCol, mode) 
                 : null;
         };
 
-        var defaultFunc = function(i, j, line) {
+        var defaultFunc = function(r, c) {
             // Otherwise, go to the end of the last line
-            var newX = Math.max(0, line.length - 2);
-            return new commands.Result(newX, j, null, null, null);
+            var line = buffer.last();
+            var newCol = line.last();
+            return new commands.Result(line.row, newCol, newCol, mode);
         };
 
-        var increment = function(x) { return x + 1 };
-
-        var result = multilineAction(x, y, text, currentLineFunc,
-            restOfLinesFunc, defaultFunc, increment);
-
-        return new commands.Result(result.x, result.y, result.x, null, null);
+        return multilineAction(row, col, currentLineFunc,
+            restOfLinesFunc, defaultFunc, 1);
     };
 
     /**
@@ -239,76 +238,60 @@
      * If there is still no suitable match, apply the default function.
      */
     var multilineAction = function(
-        x,
-        y,
-        text,
+        row,
+        col,
         currentLineFunc,
         restOfLinesFunc,
         defaultFunc,
-        ySelectorFunc) {
+        offset) {
 
         // Try current line
-        var line = text[y];
-        var result = currentLineFunc(x, y, line);
+        var result = currentLineFunc(row, col);
         if (result)
             return result;
 
         // Try remaining lines
-        for (var j = ySelectorFunc(y); j >= 0 && j < text.length; j = ySelectorFunc(j)) {
-            line = text[j];
-            result = restOfLinesFunc(0, j, line);
+        var newRow;
+        for (newRow = row + offset; 
+             newRow >= 0 && newRow < buffer.lines.length;
+             newRow += offset) {
+             result = restOfLinesFunc(newRow, 0);
             if (result)
                 return result;
         }
 
         // Default action
-        return defaultFunc(0, y, line);
+        return defaultFunc(newRow, 0);
     };
 
     /**
      * Helper function to find the position of the next word on the 
      * given line, or -1 if there are no more words on the line.
      */
-    var findNextWord = function(x, line) {
-        if (line.length == 0 || x >= line.length - 2)
+    var wHelper = function(line, col) {
+        if (line.length() == 0 || col > line.last())
             return -1;
 
-        var c = line[x];
-        var pos = x + 1;
-        var pattern;
+        var lastChar = line.chars[col];
+        var regexFactory = function(c) {
+            if (strings.isAlphaNumeric(lastChar)) {
+                // If the last char was alphanumeric, look for symbolic char
+                lastChar = c;
+                return strings.symbolicRegex;
+            }
+            else if (strings.isSymbolic(c)) {
+                // If the last char was symbolic, look for next alphanumeric char
+                lastChar = c;
+                return strings.alphaNumericRegex;
+            }
+            else {
+                // Last char was whitespace, look for next non-whitespace char
+                lastChar = c;
+                return strings.nonWhiteSpaceRegex;
+            }
+        };
 
-        // If on whitespace, look for next non-whitespace character
-        if (strings.isWhiteSpace(c)) {
-            var match = matchAt("\\S", line, pos);
-            return match ? match.index : -1;
-        }
-
-        // If the character is alphanumeric, look for the next symbol character
-        if (strings.isAlphaNumeric(c)) {
-            pattern = "[^a-zA-Z0-9_\\s]";
-        }
-        // If the character is symbolic, look for the next alphanumeric character
-        else if (strings.isSymbolic(c)) {
-            pattern = "[a-zA-Z0-9_]";
-        }
-
-        var patternMatch = matchAt(pattern, line, pos);
-        var patternPos = patternMatch 
-            ? patternMatch.index
-            : Number.MAX_SAFE_INTEGER;
-        
-        // Also look for the next non-whitespace character after some whitespace
-        var wordAfterWhitespaceMatch = matchAt("\\S*\\s+(\\S)", line, pos);
-        var wordAfterWhitespacePos = wordAfterWhitespaceMatch
-            ? wordAfterWhitespaceMatch.index
-            : Number.MAX_SAFE_INTEGER;
-
-        if (patternPos == Number.MAX_SAFE_INTEGER && 
-            wordAfterWhitespacePos == Number.MAX_SAFE_INTEGER)
-            return -1;
-
-        // Find the nearest of all the matches
-        return Math.min(patternPos, wordAfterWhitespacePos);
+        return match.forwardFactory(line.chars, regexFactory, col + 1);
     };
 
     /**
@@ -367,26 +350,6 @@
     };
 
     /**
-     * Find first regex match in the given string that is on or after the
-     * starting position of the string.
-     */
-    var matchAt = function(pattern, str, start) {
-        var match;
-        var regex = new RegExp(pattern, "g");
-        while (match = regex.exec(str)) {
-            var pos = match.length > 1
-                ? str.indexOf(match[1], match.index + match[0].length - 1)
-                : match.index;
-
-            if (pos >= start) {
-                return { index: pos };
-            }
-        }
-
-        return false;
-    };
-
-    /**
      * Used in insert mode. Add the character to the line at the position that
      * the cursor is on. Move the character one position to the left.
      */
@@ -409,6 +372,7 @@
             case 106: return j;
             case 107: return k;
             case 108: return l;
+            case 119: return w;
             case 120: return x;
             default:  return null;
         }
@@ -455,4 +419,4 @@
         return result;
     };
 
-})(window.commands = window.commands || {}, buffer, modes, strings);
+})(window.commands = window.commands || {}, buffer, modes, match, strings);
