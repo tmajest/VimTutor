@@ -1,7 +1,7 @@
 
-(function(vim, commands, render, modes) {
-    var x = 0;
-    var y = 0;
+(function(vim, commands, buffer, render, modes) {
+    var row = 0;
+    var col = 0;
     var mode = modes.NORMAL;
     var text = [
         "Lorem ipsum dolor sit amet, ut mei errem constituto,\n",
@@ -15,40 +15,30 @@
         "appellantur. Labore eligendi partiendo cum no, nobis delicata\n",
         "qui ut, his dictas virtute ex.\n"];
 
+    var needsPageRefresh = function(commandResult) {
+        return commandResult.row != row ||
+               commandResult.col != col ||
+               commandResult.mode != mode ||
+               commandResult.pageRefresh;
+    };
+
     vim.init = function() {
         render.init();
-        var html = render.getHtml(text, x, y);
-        render.renderPage(html);
+        buffer.init(text);
+        render.renderPage(row, col, mode);
     }
 
     vim.handleKey = function(code) {
-        var result = commands.handle(
-            x, 
-            y, 
-            code, 
-            text);
-
+        var result = commands.handle(row, col, code);
         if (!result) {
             return;
         }
 
-        var newX = result.x;
-        var newY = result.y;
-        var newText = result.newText || text;
-        var newMode = result.mode !== null ? result.mode : mode;
-
-        if (newX != x || newY != y || newText) {
-            x = newX;
-            y = newY;
-            text = newText;
-            var html = render.getHtml(text, x, y);
-            render.renderPage(html);
-        }
-
-        if (newMode != mode) {
-            mode = newMode;
-            var commandText = newMode == 0 ? "" : "-- INSERT --";
-            render.renderCommandWindow(commandText);
+        if (needsPageRefresh(result)) {
+            row = result.row;
+            col = result.col;
+            mode = result.mode;
+            render.renderPage(row, col, mode);
         }
     };
-})(window.vim = window.vim || {}, commands, render, modes)
+})(window.vim = window.vim || {}, commands, buffer, render, modes)

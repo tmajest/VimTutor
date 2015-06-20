@@ -1,5 +1,5 @@
 
-(function(render) {
+(function(render, buffer, modes) {
     var highlightCursor;
     var timer;
 
@@ -26,11 +26,25 @@
         }
     };
 
-    var getHtmlLine = function(text, x, y, i) {
+    var getHtml = function(cursorRow, cursorCol) {
+        var lines = buffer.allLines();
+        var html = []
+        var rows = lines.length; 
+        var trimmedText = rtrimText(lines);
+        
+        for (var i = 0; i < rows; i++) {
+            var htmlLine = getHtmlLine(trimmedText, i, cursorRow, cursorCol);
+            html.push(htmlLine);
+        }
+
+        return html.join("");
+    };
+
+    var getHtmlLine = function(text, i, cursorRow, cursorCol) {
         var htmlLine = ["<pre>"]
         var line = text[i];
-        if (i == y) {
-            htmlLine.push(highlight.setHtml(line, x, x, "highlight"));
+        if (i == cursorRow) {
+            htmlLine.push(highlight.setHtml(line, cursorCol, cursorCol, "highlight"));
         }
         else if (line.length == 0) {
             htmlLine.push(" ");
@@ -57,37 +71,27 @@
         $(".text").html(html);
     };
 
-    render.init = function() {
-        highlightCursor = true; 
-        resetTimer();
-    };
-
-    render.renderPage = function(html) {
-        highlightCursor = true;
-        resetTimer();
-        renderHtml(html);
-        renderCursor();
-    };
-
-
-    render.getHtml = function(text, x, y) {
-        var html = []
-        var rows = text.length; 
-        var trimmedText = rtrimText(text);
-        
-        for (var i = 0; i < rows; i++) {
-            var htmlLine = getHtmlLine(trimmedText, x, y, i);
-            html.push(htmlLine);
-        }
-
-        return html.join("");
-    };
-
-    render.renderCommandWindow = function(commandText) {
+    var renderCommandWindow = function(commandText) {
         $(".commandWindow").empty();
         var text = ["<p>"];
         text.push(commandText);
         text.push("</p>");
         $(".commandWindow").html(text.join(""));
     };
-})(window.render = window.render || {});
+
+    render.init = function() {
+        highlightCursor = true; 
+        resetTimer();
+    };
+
+    render.renderPage = function(row, col, mode) {
+        var html = getHtml(row, col);
+        highlightCursor = true;
+        resetTimer();
+        renderHtml(html);
+        renderCursor();
+
+        var commandText = mode == modes.INSERT ? "-- INSERT --" : "";
+        renderCommandWindow(commandText);
+    };
+})(window.render = window.render || {}, buffer, modes);

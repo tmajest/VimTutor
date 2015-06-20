@@ -1,20 +1,20 @@
 /**
  * Module used to handle key motions and actions.
- * Handling functions take the current x and y position of the
+ * Handling functions take the current row and column of the
  * cursor along with the text and character pressed.  They return the
  * new positions of the cursor, or false if it is an invalid key.
  */
-(function(commands, modes, strings) {
-    var lastX = 0;
+(function(commands, buffer, modes, strings) {
+    var lastCol = 0;
     var mode = modes.NORMAL;
 
     /**
      * The h key; move the cursor one character to the left.
      * If the cursor's x position is already at 0, don't move the cursor.
      */
-    var h = function(x, y, text) {
-        var newX = Math.max(0, x - 1); 
-        return new commands.Result(newX, y, newX, null, null);
+    var h = function(row, col) {
+        var newCol = buffer.lines[row].offset(col, -1);
+        return new commands.Result(row, newCol, newCol, mode);
     };
 
     /**
@@ -30,20 +30,19 @@
      * Otherwise, the line below is not long enough so move the cursor down and 
      * to the end of the line.
      */
-    var j = function(x, y, text) {
-        var rows = text.length;
-        var newY = Math.min(y + 1, rows - 1);
+    var j = function(row, col) {
+        var newLine = buffer.offset(row, 1);
+        var len = newLine.length();
 
-        var len = text[newY].length - 1;
-        var newX;
-        if (len <= lastX) {
-            newX = Math.max(0, len - 1);
+        var newCol;
+        if (len <= lastCol) {
+            newCol = newLine.last();
         }
         else {
-            newX = lastX;
+            newCol = lastCol;
         }
 
-        return new commands.Result(newX, newY, null, null, null);
+        return new commands.Result(newLine.row, newCol, lastCol, mode);
     };
 
     /**
@@ -60,81 +59,79 @@
      * Otherwise, the line above is not long enough so move the cursor up and 
      * to the end of the line.
      */
-    var k = function(x, y, text) {
-        var newY = Math.max(0, y - 1);
-        var len = text[newY].length - 1;
-        var newX;
-        if (len <= lastX) {
-            newX = Math.max(0, len - 1);
+    var k = function(row, col) {
+        var newLine = buffer.offset(row, -1);
+        var len = newLine.length();
+
+        var newCol;
+        if (len <= lastCol) {
+            newCol = newLine.last();
         }
         else {
-            newX = lastX;
+            newCol = lastCol;
         }
 
-        return new commands.Result(newX, newY, null, null, null);
+        return new commands.Result(newLine.row, newCol, lastCol, mode);
     };
 
     /**
      * The l key; move the cursor one character to the right.
      * If the cursor is already at the end of the line, do nothing.
      */
-    var l = function(x, y, text) {
-        var len = text[y].length - 1;
-        var newX = len == 0 ? 0 : Math.min(x + 1, len - 1);
-        return new commands.Result(newX, y, newX, null, null);
+    var l = function(row, col) {
+        var newCol = buffer.lines[row].offset(col, 1);
+        return new commands.Result(row, newCol, newCol, mode);
     };
 
     /**
      * The 0 key; move the cursor to the beginning of the line.
      */
-    var zero = function(x, y, text, mode) {
-        return new commands.Result(0, y, 0, null, null);
+    var zero = function(row, col) {
+        return new commands.Result(row, 0, 0, mode);
+    };
+
+    /**
+     * The $ key; move the cursor to the end of the line.
+     */
+    var dollarSign = function(row, col) {
+        var newCol = buffer.lines[row].last();
+        return new commands.Result(row, newCol, newCol, mode);
     };
 
     /**
      * Delete the character under the cursor.
      */
-    var x = function(x, y, text) {
-        var line = text[y];
-        var newLine = []
+    var x = function(row, col) {
+        var line = buffer.lines[row];
+        line.remove(col);
 
-        if (line.length == 1) {
-            return;
-        }
+        // If the cursor was on the last character in the line,
+        // move to the previous character.
+        var len = line.length();
+        var newCol = col == len
+            ? line.offset(col, -1)
+            : col;
 
-        newLine.push(line.substring(0, x));
-        newLine.push(line.substring(x + 1));
-        text[y] = newLine.join("");
-
-        var newX = x == line.length - 2 ? x - 1 : x;
-        return new commands.Result(newX, y, newX, text, null);
+        return new commands.Result(row, newCol, newCol, mode, true);
     };
 
     /**
      * Go into insert mode.
      */
-    var i = function(x, y, text) {
-        return new commands.Result(x, y, null, null, modes.INSERT);
+    var i = function(row, col) {
+        return new commands.Result(row, col, lastCol, modes.INSERT, true);
     };
 
     /**
      * Go into normal mode.  If the previous mode was insert mode,
      * move the cursor to the left.
      */
-    var esc = function(x, y, text) {
+    var esc = function(row, col) {
         if (mode == modes.NORMAL) {
             return null;
         }
-        var newX = Math.max(0, x - 1); 
-        return new commands.Result(newX, y, newX, null, modes.NORMAL);
-    };
-
-    /**
-     * The $ key; move the cursor to the end of the line.
-     */
-    var dollarSign = function(x, y, text) {
-        var newX = Math.max(0, text[y].length - 2);
-        return new commands.Result(newX, y, newX, null, null);
+        var newCol = buffer.lines[row].offset(col, -1);
+        return new commands.Result(row, newCol, newCol, modes.NORMAL, true);
     };
 
     /**
@@ -393,76 +390,69 @@
      * Used in insert mode. Add the character to the line at the position that
      * the cursor is on. Move the character one position to the left.
      */
-    var addText = function(x, y, code, text) {
-        var line = text[y];
-        var newLine = []
-
-        newLine.push(line.substring(0, x));
-        newLine.push(String.fromCharCode(code));
-        newLine.push(line.substring(x));
-
-        text[y] = newLine.join("");
-        return new commands.Result(x + 1, y, null, text, null);
+    var addChar = function(row, col, c) {
+        buffer.lines[row].insert(c, col);
+        var newCol = col + 1;
+        return new commands.Result(row, newCol, newCol, mode, true);
     };
 
-    var normalHandlers = {
-        36: dollarSign,
-        48: zero,
-        27: esc,
-        105: i,
-        104: h,
-        106: j,
-        107: k,
-        108: l,
-        101: e,
-        119: w,
-        120: x,
+    /**
+     * Return the command function that corresponds to the given key code.
+     */
+    var getFunc = function(code) {
+        switch (code) {
+            case 27:  return esc;
+            case 36:  return dollarSign;
+            case 48:  return zero;
+            case 105: return i;
+            case 104: return h;
+            case 106: return j;
+            case 107: return k;
+            case 108: return l;
+            case 120: return x;
+            default:  return null;
+        }
     };
 
     /**
      * Used to store the result of a command action.
      */
-    commands.Result = function(x, y, lastX, newText, mode) {
-        this.lastX = lastX;
-        this.x = x;
-        this.y = y;
-        this.newText = newText;
+    commands.Result = function(row, col, lastCol, mode, pageRefresh) {
+        this.row = row;
+        this.col = col;
+        this.lastCol = lastCol;
         this.mode = mode;
+        this.pageRefresh = pageRefresh;
     };
 
     /**
      * Given the corrent position of the cursor, the key that
-     * was typed, and the current text, generate the new position
-     * for the cursor.
+     * was typed, and the current mode, execute the proper command.
      */
-    commands.handle = function(x, y, code, text) {
+    commands.handle = function(row, col, code) {
         var result;
 
         if (mode == modes.NORMAL) {
             // User is executing a command in normal mode
-            result = code in normalHandlers
-                ? normalHandlers[code](x, y, text)
-                : null;
+            func = getFunc(code);
+            result = func ? func(row, col, mode) : null;
         }
         else if (code == 27) {
             // User hit escape to leave insert mode
-            result = esc(x, y, text, mode);
+            result = esc(row, col);
         }
         else {
             // User is typing text in insert mode
-            result = addText(x, y, code, text);
+            var c = String.fromCharCode(code);
+            result = addChar(row, col, c);
         }
 
         if (!result)
             return;
 
-        if (result.lastX !== null)
-            lastX = result.lastX;
-
-        if (result.mode === modes.NORMAL || result.mode === modes.INSERT) 
-            mode = result.mode;
-
+        lastCol = result.lastCol;
+        mode = result.mode;
         return result;
     };
 
-})(window.commands = window.commands || {}, modes, strings);
+})(window.commands = window.commands || {}, buffer, modes, strings);
