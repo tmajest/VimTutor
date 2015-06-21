@@ -17,8 +17,7 @@
         for (var i = start; i >= 0 && i < len; i += offset) {
             var c = chars[i];
             var regex = regexFactory(c);
-            var result = regex.exec(c);
-            if (result)
+            if (regex.test(c))
                 return i;
         }
 
@@ -30,10 +29,11 @@
      * using the supplied regular expression.
      */
     match.forward = function(chars, regex, start) {
-        return match.forwardFactory(
-        chars, 
-        function(c) { return regex; }, 
-        start);
+        var factory = function(c) {
+            return regex;
+        };
+
+        return match.forwardFactory(chars, factory, start);
     };
 
     /**
@@ -54,10 +54,11 @@
      * character array.
      */
     match.backwards = function(chars, regexFactory, start) {
-        if (!start)
-            start = 0;
+        var factory = function(c) {
+            return regex;
+        };
 
-        return search(chars, regexFactory, start, -1);
+        return match.backwardsFactory(chars, factory, start);
     };
 
     /**
@@ -66,10 +67,10 @@
      * through the character array.
      */
     match.backwardsFactory = function(chars, regexFactory, start) {
-        return match.backwardsFactory(
-        chars, 
-        function(c) { return regex; }, 
-        start);
+        if (!start)
+            start = 0;
+
+        return search(chars, regexFactory, start, -1);
     };
 
 })(window.match = window.match || {});

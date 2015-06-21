@@ -269,29 +269,44 @@
      * given line, or -1 if there are no more words on the line.
      */
     var wHelper = function(line, col) {
-        if (line.length() == 0 || col > line.last())
+        if (col >= line.length())
             return -1;
 
         var lastChar = line.chars[col];
         var regexFactory = function(c) {
+            var regex;
             if (strings.isAlphaNumeric(lastChar)) {
                 // If the last char was alphanumeric, look for symbolic char
-                lastChar = c;
-                return strings.symbolicRegex;
+                regex = strings.symbolicRegex;
             }
             else if (strings.isSymbolic(c)) {
                 // If the last char was symbolic, look for next alphanumeric char
-                lastChar = c;
-                return strings.alphaNumericRegex;
+                regex = strings.alphaNumericRegex;
             }
             else {
                 // Last char was whitespace, look for next non-whitespace char
-                lastChar = c;
-                return strings.nonWhiteSpaceRegex;
+                regex = strings.nonWhiteSpaceRegex;
             }
+            lastChar = c;
+            return regex;
         };
 
         return match.forwardFactory(line.chars, regexFactory, col + 1);
+    };
+
+    var eHelper = function(line, col) {
+        if (col >= line.length())
+            return -1;
+    
+        var foundWord = false;
+        var lastChar = line.chars[col];
+        var regexFactory = function(c) {
+            var regex;
+            if (strings.isAlphaNumeric(lastChar)) {
+                 
+            }
+        };
+
     };
 
     /**

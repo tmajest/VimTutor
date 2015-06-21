@@ -4,7 +4,7 @@
     var col = 0;
     var mode = modes.NORMAL;
     var text = [
-        "Lorem ipsum dolor sit amet, ut mei errem constituto,\n",
+        "Lorem e ipsum dolor sit amet, ut mei errem constituto,\n",
         "illud errem vidisse nam te. Nam quis scripserit at,\n",
         "pro posse mediocrem no, per illud dolorem ad. Ne mei\n", 
         "diceret appetere. Ex ius malorum nominavi.\n",
