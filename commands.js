@@ -189,25 +189,23 @@
      * or a sequence of other non-blank characters separated by whitespace
      * (spaces, tabs, or <EOL>). See :h word for more details.
      */
-    var e = function(x, y, text) {
-        var findEndOfWordFunc = function(i, j, line) {
-            var newX = findEndOfNextWord(i, line);
-            return newX >= 0 
-                ? new commands.Result(newX, j, null, null, null) 
-                : false;
+    var e = function(row, col) {
+        var findEndOfWordFunc = function(r, c) {
+            var line = buffer.lines[r];
+            var newCol = eHelper(line, c);
+            return newCol >= 0 
+                ? new commands.Result(r, newCol, newCol, mode) 
+                : null;
         };
 
-        var defaultFunc = function(i, j, line) {
-            var newX = Math.max(0, line.length - 2);
-            return new commands.Result(newX, j, null, null, null);
+        var defaultFunc = function(r, c) {
+            var line = buffer.last();
+            var newCol = line.last();
+            return new commands.Result(line.row, newCol, newCol, mode);
         };
 
-        var increment = function(x) { return x + 1 };
-
-        var result = multilineAction(x, y, text, findEndOfWordFunc,
-            findEndOfWordFunc, defaultFunc, increment);
-
-        return new commands.Result(result.x, result.y, result.x, null, null);
+       return multilineAction(row, col, findEndOfWordFunc,
+            findEndOfWordFunc, defaultFunc, 1);
     };
 
     /**
@@ -294,74 +292,55 @@
         return match.forwardFactory(line.chars, regexFactory, col + 1);
     };
 
+    /**
+     * Helper function for the e key.
+     *
+     * Finds the position of the end of the current word. If the cursor is 
+     * already on the the end of a word or on whitspace, go to the end of
+     * the next word.
+     */
     var eHelper = function(line, col) {
         if (col >= line.length())
             return -1;
     
-        var foundWord = false;
-        var lastChar = line.chars[col];
-        var regexFactory = function(c) {
+        // Find the next word; any non-whitespace character will do
+        var findWordResult = match.forward(
+            line.chars, 
+            strings.nonWhiteSpaceRegex,
+            col + 1);
+
+        if (findWordResult < 0)
+            return -1;
+
+        // RegexFactory to find the end of the next word;
+        var lastChar = line.chars[findWordResult];
+        var findEndOfWordRegexFactory = function(c) {
             var regex;
             if (strings.isAlphaNumeric(lastChar)) {
-                 
+                // If the last char was alphanumeric, find a non alphanumeric char
+                regex = strings.nonAlphaNumericRegex;
             }
+            else if (strings.isSymbolic(lastChar)) {
+                // If the last char was symbolic, find a non symbolic char
+                regex = strings.nonSymbolicRegex;
+            }
+            else {
+                // If the last char was whitespace, find a non whitespace char
+                regex = strings.nonWhiteSpaceRegex; 
+            }
+
+            lastChar = c;
+            return regex;
         };
 
-    };
+        var findEndOfWordResult = match.forwardFactory(
+            line.chars, 
+            findEndOfWordRegexFactory, 
+            findWordResult + 1);
 
-    /**
-     * Helper function for e key.  Finds the end of the word that the cursor
-     * is on.  If the cursor is already on the end of a word, return the
-     * position of the end of the next word.  If there are no more words
-     * on the current line, return -1;
-     */
-    var findEndOfNextWord = function(x, line) {
-        var pos = x + 1;
-        if (line.length == 0 || pos > line.length - 2)
-            return -1;
-
-        var c = line[pos];
-        if (strings.isWhiteSpace(c)) {
-            var match = matchAt("\\S", line, pos);
-            if (!match)
-                return -1;
-
-            pos = match.index;
-        }
-
-        return findEndOfWord(pos, line);
-    };
-
-    /**
-     * Given that x is on a non-whitespace character, find the end of the word
-     * that the character is on.
-     */
-    var findEndOfWord = function(x, line) {
-        if (x == line.length - 2)
-            return x;
-
-        var c = line[x];
-        var pattern;
-
-        pattern = isAlphaNumeric(c) ? "[^a-zA-Z0-9_\\s]" : "\\s";
-
-        var patternMatch = matchAt(pattern, line, x);
-        var patternPos = patternMatch
-            ? patternMatch.index
-            : Number.MAX_SAFE_INTEGER;
-
-        var whitespaceMatch = matchAt("\\s", line, x);
-        var whitespacePos = whitespaceMatch
-            ? whitespaceMatch.index
-            : Number.MAX_SAFE_INTEGER;
-
-        if (patternPos == Number.MAX_SAFE_INTEGER && 
-            whitespacePos == Number.MAX_SAFE_INTEGER)
-            return -1;
-
-        return Math.min(patternPos, whitespacePos) == patternPos
-            ? patternPos - 1
-            : whitespacePos- 1;
+        return  findEndOfWordResult >= 0 
+            ? findEndOfWordResult - 1
+            : -1;
     };
 
     /**
@@ -382,6 +361,7 @@
             case 27:  return esc;
             case 36:  return dollarSign;
             case 48:  return zero;
+            case 101: return e;
             case 105: return i;
             case 104: return h;
             case 106: return j;
