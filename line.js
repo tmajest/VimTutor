@@ -1,19 +1,12 @@
-(function(buffer) {
+(function(buffer, strings) {
 
     /**
      * Class to store a single line of text.
      */
     buffer.line = function(str, row) {
+        this.chars = str.toArray();
         this.row = row;
-        this.chars = [];
         var that = this;
-
-        var init = function() {
-            var len = str.length;
-            for (var i = 0; i < len; i++) {
-                that.chars.push(str.charAt(i));
-            }
-        };
 
         /**
          * Returns the length of the line; ignores the EOL character.
@@ -78,11 +71,9 @@
         that.toString = function() {
             return that.chars.join("");
         }
-
-        init();
     };
 
-})(window.buffer = window.buffer || {});
+})(window.buffer = window.buffer || {}, strings);
 
 /**
  * Array Remove - By John Resig (MIT Licensed)

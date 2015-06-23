@@ -26,21 +26,17 @@
 
     var getHtml = function(cursorRow, cursorCol) {
         var lines = buffer.allLines();
-        var html = []
         var rows = lines.length; 
         var trimmedText = rtrimText(lines);
-        
-        for (var i = 0; i < rows; i++) {
-            var htmlLine = getHtmlLine(trimmedText, i, cursorRow, cursorCol);
-            html.push(htmlLine);
-        }
+        var html = trimmedText.map(function(line, i) {
+            return getHtmlLine(line, i, cursorRow, cursorCol);
+        });
 
         return html.join("");
     };
 
-    var getHtmlLine = function(text, i, cursorRow, cursorCol) {
+    var getHtmlLine = function(line, i, cursorRow, cursorCol) {
         var htmlLine = ["<pre>"]
-        var line = text[i];
         if (i == cursorRow) {
             htmlLine.push(highlight.setHtml(line, cursorCol, cursorCol, "highlight"));
         }
@@ -55,13 +51,9 @@
     };
 
     var rtrimText = function(text) {
-        var newText = []
-        for (var i = 0; i < text.length; i++) {
-            var line = text[i];
-            var len = line.length;
-            newText.push(line.substring(0, len - 1));
-        }
-        return newText;
+        return text.map(function(line) {
+            return line.substring(0, line.length - 1);
+        });
     };
 
     var renderHtml = function(html) {

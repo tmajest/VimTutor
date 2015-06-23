@@ -69,4 +69,21 @@
      * Regular expression for non whitespace characters.
      */
     strings.nonWhiteSpaceRegex = /\S/;
+
+    /**
+     * Map method for strings.
+     */
+    String.prototype.map = function(f) {
+        return Array.prototype.map.call(this, f);
+    };
+
+    /**
+     * Convert string to array of string characters.
+     */
+    String.prototype.toArray = function() {
+        return this.map(function(c) {
+            return c;
+        });
+    };
 })(window.strings = window.strings || {});
+

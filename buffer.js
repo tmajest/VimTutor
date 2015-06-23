@@ -2,10 +2,9 @@
     buffer.lines = [];
 
     buffer.init = function(text) {
-        var len = text.length;
-        for (var i = 0; i < len; i++) {
-            this.lines[i] = new buffer.line(text[i], i);
-        }
+        this.lines = text.map(function(line, i) {
+            return new buffer.line(line, i);
+        });
     }
 
     /**
@@ -41,12 +40,8 @@
      * Get a string array of all the lines in the buffer.
      */
     buffer.allLines = function() {
-        var allLines = [];
-        var len = this.lines.length;
-        for (var i = 0; i < len; i++) {
-            allLines.push(this.lines[i].toString());
-        }
-
-        return allLines;
+        return this.lines.map(function(line) {
+            return line.toString();
+        });
     }
 })(window.buffer = window.buffer || {});
